@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WC2026 Stock Market Game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" />
+<style>
+/* ── ROOT ─────────────────────────────────────────── */
+:root {
+  --gold:#f0c040; --gold2:#d4a017; --green:#00c47d; --red:#e84040; --blue:#1a6ef5;
+  --white:#f4f4f0; --dark:#0d0e0c; --dark2:#181a17; --dark3:#232620; --dark4:#2e3129;
+  --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.14);
+  --t1:#3a8de8; --t2:#00c47d; --t3:#f0c040; --t4:#e84040;
+  --font-display:'Bebas Neue',sans-serif; --font-body:'Barlow',sans-serif;
+  --radius:8px; --radius-lg:14px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow-x:hidden;}
+body{font-family:var(--font-body);background:var(--dark);color:var(--white);font-size:14px;line-height:1.5;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,0.012) 0 1px,transparent 1px 60px),
+             repeating-linear-gradient(0deg,rgba(255,255,255,0.012) 0 1px,transparent 1px 60px);}
+
+/* ── SCREENS ─────────────────────────────────────── */
+.screen{display:none;position:relative;z-index:1;}
+.screen.active{display:block;}
+#main-app{display:none;flex-direction:column;min-height:100vh;position:relative;z-index:1;}
+#main-app.vis{display:flex;}
+
+/* ── LOADING ─────────────────────────────────────── */
+#screen-loading.active{display:flex;}
+#screen-loading{min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:2rem;gap:16px;}
+.spinner{width:40px;height:40px;border:3px solid rgba(240,192,64,.2);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-text{font-family:var(--font-display);font-size:22px;letter-spacing:2px;color:var(--gold);}
+
+/* ── LOGIN ───────────────────────────────────────── */
+#screen-login.active{display:flex;}
+#screen-login{min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:2rem;}
+.login-hero{text-align:center;margin-bottom:2rem;}
+.login-trophy{font-size:56px;display:block;margin-bottom:12px;animation:glow 2.5s ease-in-out infinite alternate;}
+@keyframes glow{from{filter:drop-shadow(0 0 12px rgba(240,192,64,.3));}to{filter:drop-shadow(0 0 32px rgba(240,192,64,.7));}}
+.login-title{font-family:var(--font-display);font-size:52px;letter-spacing:2px;color:var(--gold);}
+.login-sub{font-size:13px;color:rgba(255,255,255,.45);margin-top:6px;letter-spacing:1px;text-transform:uppercase;}
+.login-card{background:var(--dark2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:2rem;width:100%;max-width:380px;box-shadow:0 24px 60px rgba(0,0,0,.5);}
+.form-label{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.4);display:block;margin-bottom:5px;margin-top:14px;}
+.form-input{width:100%;padding:10px 14px;font-size:14px;font-family:var(--font-body);background:var(--dark3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--white);transition:border-color .2s;}
+.form-input:focus{outline:none;border-color:var(--gold);}
+select.form-input option{background:var(--dark3);}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;font-size:14px;font-weight:600;font-family:var(--font-body);border-radius:var(--radius);border:1px solid var(--border2);background:var(--dark3);color:var(--white);cursor:pointer;transition:all .15s;letter-spacing:.02em;}
+.btn:hover{background:var(--dark4);}
+.btn-gold{background:var(--gold);color:var(--dark);border-color:var(--gold);width:100%;margin-top:1.25rem;font-size:15px;}
+.btn-gold:hover{background:var(--gold2);border-color:var(--gold2);}
+.btn-green{border-color:var(--green);color:var(--green);}
+.btn-green:hover{background:rgba(0,196,125,.12);}
+.btn-red{border-color:var(--red);color:var(--red);}
+.btn-red:hover{background:rgba(232,64,64,.12);}
+.btn-ghost{border-color:transparent;background:transparent;color:rgba(255,255,255,.5);}
+.btn-ghost:hover{color:var(--white);background:var(--dark3);}
+.error-msg{font-size:12px;color:var(--red);margin-top:8px;min-height:16px;}
+
+/* ── TOP BAR ─────────────────────────────────────── */
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:0 1.25rem;height:54px;background:var(--dark2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20;flex-shrink:0;}
+.top-brand{display:flex;align-items:center;gap:10px;}
+.top-brand-name{font-family:var(--font-display);font-size:22px;letter-spacing:1.5px;color:var(--gold);}
+.top-right{display:flex;align-items:center;gap:8px;}
+.badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600;letter-spacing:.04em;}
+.badge-green{background:rgba(0,196,125,.15);color:var(--green);border:1px solid rgba(0,196,125,.3);}
+.badge-red{background:rgba(232,64,64,.15);color:var(--red);border:1px solid rgba(232,64,64,.3);}
+.badge-blue{background:rgba(26,110,245,.15);color:#6ea8fe;border:1px solid rgba(26,110,245,.3);}
+
+/* ── NAV TABS ────────────────────────────────────── */
+.nav-tabs{display:flex;gap:2px;padding:8px 1.25rem;background:var(--dark2);border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0;}
+.nav-tab{font-size:13px;font-family:var(--font-body);font-weight:600;padding:6px 14px;border-radius:var(--radius);border:none;background:transparent;color:rgba(255,255,255,.4);cursor:pointer;white-space:nowrap;transition:all .15s;}
+.nav-tab:hover:not(.active){color:rgba(255,255,255,.7);}
+.nav-tab.active{background:rgba(240,192,64,.12);color:var(--gold);border:1px solid rgba(240,192,64,.25);}
+
+/* ── TAB CONTENT ─────────────────────────────────── */
+.tab-content{flex:1;overflow-y:auto;}
+.tab-body{padding:1.25rem;max-width:960px;margin:0 auto;}
+.section-title{font-family:var(--font-display);font-size:20px;letter-spacing:1px;color:var(--gold);margin-bottom:12px;margin-top:1.5rem;}
+.section-title:first-child{margin-top:0;}
+
+/* ── METRICS ─────────────────────────────────────── */
+.metrics-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.25rem;}
+.metric{background:var(--dark2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;}
+.metric-label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:4px;}
+.metric-value{font-family:var(--font-display);font-size:26px;letter-spacing:.5px;}
+.metric-value.green{color:var(--green);}
+.metric-value.gold{color:var(--gold);}
+
+/* ── HOLDINGS ────────────────────────────────────── */
+.holdings-header{display:grid;grid-template-columns:1fr 60px 100px 80px;gap:12px;padding:8px 12px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.3);border-bottom:1px solid var(--border);}
+.holding-row{display:grid;grid-template-columns:1fr 60px 100px 80px;gap:12px;align-items:center;padding:11px 12px;border-bottom:1px solid var(--border);font-size:13px;}
+.holding-row:hover{background:var(--dark2);}
+.holding-flag{font-size:17px;margin-right:6px;}
+.price-up{color:var(--green);}
+.price-down{color:var(--red);}
+
+/* ── MARKET ──────────────────────────────────────── */
+.banner{padding:10px 14px;border-radius:var(--radius);font-size:13px;display:flex;align-items:center;gap:8px;margin-bottom:1rem;}
+.banner-closed{background:rgba(232,64,64,.1);border:1px solid rgba(232,64,64,.25);color:var(--red);}
+.banner-open{background:rgba(0,196,125,.1);border:1px solid rgba(0,196,125,.25);color:var(--green);}
+.banner-locked{background:rgba(240,192,64,.1);border:1px solid rgba(240,192,64,.25);color:var(--gold);}
+.search-input{width:100%;padding:10px 14px;font-size:14px;font-family:var(--font-body);background:var(--dark2);border:1px solid var(--border2);border-radius:var(--radius);color:var(--white);margin-bottom:10px;}
+.search-input:focus{outline:none;border-color:var(--gold);}
+.filter-row{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap;}
+.filter-chip{font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:rgba(255,255,255,.45);cursor:pointer;font-family:var(--font-body);transition:all .15s;}
+.filter-chip:hover{color:var(--white);}
+.filter-chip.active{background:var(--dark3);color:var(--white);border-color:var(--border2);}
+.tier-section{margin-bottom:1.5rem;}
+.tier-header{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);margin-bottom:8px;}
+.tier-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.tier-label{font-family:var(--font-display);font-size:18px;letter-spacing:.5px;}
+.tier-info{font-size:12px;color:rgba(255,255,255,.3);margin-left:auto;}
+.country-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:7px;}
+.country-card{background:var(--dark2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;display:flex;align-items:center;gap:10px;transition:border-color .15s;}
+.country-card:hover{border-color:var(--border2);}
+.country-card.owned{border-color:rgba(0,196,125,.4);background:rgba(0,196,125,.06);}
+.country-card.eliminated{opacity:.4;pointer-events:none;}
+.country-flag{font-size:20px;}
+.country-info{flex:1;min-width:0;}
+.country-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.country-price{font-size:12px;color:rgba(255,255,255,.4);}
+.share-control{display:flex;align-items:center;gap:4px;}
+.share-btn{width:26px;height:26px;border-radius:50%;border:1px solid var(--border2);background:var(--dark3);color:var(--white);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;font-family:var(--font-body);transition:all .15s;}
+.share-btn:hover{background:var(--dark4);}
+.share-count{font-size:14px;font-weight:700;min-width:20px;text-align:center;color:var(--gold);}
+
+/* ── LEADERBOARD ─────────────────────────────────── */
+.lb-row{display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid var(--border);transition:background .15s;}
+.lb-row:hover{background:var(--dark2);}
+.lb-rank{font-family:var(--font-display);font-size:22px;width:32px;text-align:center;color:rgba(255,255,255,.25);}
+.lb-rank.gold{color:#f0c040;}
+.lb-rank.silver{color:#aaa;}
+.lb-rank.bronze{color:#cd7f32;}
+.lb-avatar{width:34px;height:34px;border-radius:50%;background:var(--dark3);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--gold);flex-shrink:0;border:1px solid var(--border2);}
+.lb-name{flex:1;font-weight:600;}
+.lb-worth{font-family:var(--font-display);font-size:20px;letter-spacing:.5px;}
+.lb-change{font-size:12px;font-weight:600;}
+.champion-banner{background:linear-gradient(135deg,rgba(240,192,64,.15),rgba(212,160,23,.08));border:1px solid rgba(240,192,64,.35);border-radius:var(--radius-lg);padding:1.5rem;text-align:center;margin-bottom:1.25rem;}
+.champion-flag{font-size:48px;display:block;margin-bottom:8px;filter:drop-shadow(0 0 16px rgba(240,192,64,.5));}
+.champion-label{font-family:var(--font-display);font-size:32px;letter-spacing:2px;color:var(--gold);}
+
+/* ── BRACKET ─────────────────────────────────────── */
+.stage-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:1rem;}
+.stage-chip{font-size:12px;font-weight:600;padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:rgba(255,255,255,.45);cursor:pointer;font-family:var(--font-body);transition:all .15s;}
+.stage-chip:hover{color:var(--white);}
+.stage-chip.active{background:var(--gold);color:var(--dark);border-color:var(--gold);}
+.advancement-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:8px;margin-top:10px;}
+.adv-card{background:var(--dark3);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;}
+.adv-card.advanced{border-color:rgba(0,196,125,.5);background:rgba(0,196,125,.08);}
+.adv-card.eliminated-card{opacity:.5;}
+.adv-badge{font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px;margin-left:auto;}
+.adv-badge.win{background:rgba(0,196,125,.2);color:var(--green);}
+.adv-badge.out{background:rgba(232,64,64,.2);color:var(--red);}
+
+/* ── ADMIN ───────────────────────────────────────── */
+.admin-card{background:var(--dark2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:12px;}
+.admin-card h3{font-family:var(--font-display);font-size:20px;letter-spacing:.5px;margin-bottom:14px;}
+.form-row-match{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:end;margin-bottom:12px;}
+.vs-label{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.3);text-align:center;padding-bottom:10px;}
+.score-input{width:64px;text-align:center;font-family:var(--font-display);font-size:28px;background:var(--dark3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--white);padding:6px;}
+.score-input:focus{outline:none;border-color:var(--gold);}
+.result-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px;font-size:13px;background:var(--dark3);}
+.result-meta{font-size:11px;color:rgba(255,255,255,.3);}
+.admin-player-card{border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:10px;background:var(--dark3);}
+.tag{font-size:11px;display:inline-flex;align-items:center;gap:3px;background:var(--dark2);border:1px solid var(--border);padding:3px 8px;border-radius:20px;margin:2px;}
+
+/* ── MODAL ───────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(4px);}
+.modal-box{background:var(--dark2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:2rem;max-width:380px;width:90%;box-shadow:0 24px 60px rgba(0,0,0,.6);}
+.modal-box h3{font-family:var(--font-display);font-size:24px;letter-spacing:1px;margin-bottom:8px;}
+.modal-box p{font-size:13px;color:rgba(255,255,255,.45);margin-bottom:1.25rem;line-height:1.6;}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;}
+
+/* ── TOAST ───────────────────────────────────────── */
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--dark3);border:1px solid var(--border2);color:var(--white);padding:10px 16px;border-radius:var(--radius);font-size:13px;font-weight:600;opacity:0;transition:opacity .3s,transform .3s;z-index:999;max-width:300px;transform:translateY(8px);}
+.toast.show{opacity:1;transform:translateY(0);}
+.toast.success{border-color:rgba(0,196,125,.4);color:var(--green);}
+.toast.error{border-color:rgba(232,64,64,.4);color:var(--red);}
+
+.empty-state{text-align:center;padding:3rem;color:rgba(255,255,255,.2);font-size:14px;}
+.empty-icon{font-size:36px;display:block;margin-bottom:8px;}
+
+/* ── SYNC INDICATOR ──────────────────────────────── */
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;margin-right:4px;animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+/* ── BUY/SELL BUTTONS ────────────────────────────── */
+.buy-sell-wrap{display:flex;align-items:center;gap:5px;}
+.btn-buy{padding:4px 10px;font-size:12px;font-weight:700;border-radius:var(--radius);border:1px solid rgba(0,196,125,.5);background:rgba(0,196,125,.12);color:var(--green);cursor:pointer;font-family:var(--font-body);transition:all .15s;white-space:nowrap;}
+.btn-buy:hover{background:rgba(0,196,125,.25);}
+.btn-buy:disabled{opacity:.35;cursor:not-allowed;}
+.btn-sell{padding:4px 10px;font-size:12px;font-weight:700;border-radius:var(--radius);border:1px solid rgba(232,64,64,.45);background:rgba(232,64,64,.1);color:var(--red);cursor:pointer;font-family:var(--font-body);transition:all .15s;white-space:nowrap;}
+.btn-sell:hover{background:rgba(232,64,64,.22);}
+.btn-sell:disabled{opacity:.35;cursor:not-allowed;}
+.cash-inline{font-size:11px;color:rgba(255,255,255,.35);margin-left:2px;}
+
+/* ── TRANSACTIONS ────────────────────────────────── */
+.txn-row{display:grid;grid-template-columns:56px 1fr 80px 90px 100px;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;}
+.txn-row:hover{background:var(--dark2);}
+.txn-header{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.3);border-bottom:1px solid var(--border);}
+.txn-badge-buy{background:rgba(0,196,125,.15);color:var(--green);border:1px solid rgba(0,196,125,.3);padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;}
+.txn-badge-sell{background:rgba(232,64,64,.15);color:var(--red);border:1px solid rgba(232,64,64,.3);padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;}
+.txn-balance{font-size:11px;color:rgba(255,255,255,.35);}
+
+/* ── PENDING APPROVALS ───────────────────────────── */
+.approval-card{background:var(--dark3);border:1px solid rgba(240,192,64,.2);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:14px;}
+.approval-name{flex:1;font-weight:700;font-size:14px;}
+.approval-time{font-size:11px;color:rgba(255,255,255,.3);}
+.pending-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:300;backdrop-filter:blur(6px);}
+.pending-box{background:var(--dark2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:2.5rem;max-width:360px;width:90%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.7);}
+.pending-icon{font-size:48px;display:block;margin-bottom:14px;animation:glow 2.5s ease-in-out infinite alternate;}
+.pending-title{font-family:var(--font-display);font-size:26px;letter-spacing:1px;color:var(--gold);margin-bottom:8px;}
+.pending-sub{font-size:13px;color:rgba(255,255,255,.4);line-height:1.6;}
+
+/* ── ROOM LOBBY ──────────────────────────────────── */
+#screen-lobby.active{display:flex;}
+#screen-lobby{min-height:100vh;flex-direction:column;align-items:center;justify-content:flex-start;padding:2rem;padding-top:3rem;}
+.lobby-hero{text-align:center;margin-bottom:2rem;}
+.lobby-tabs{display:flex;gap:0;margin-bottom:1.5rem;border:1px solid var(--border2);border-radius:var(--radius);overflow:hidden;width:100%;max-width:420px;}
+.lobby-tab{flex:1;padding:10px;font-size:14px;font-weight:600;font-family:var(--font-body);background:transparent;color:rgba(255,255,255,.4);border:none;cursor:pointer;transition:all .15s;}
+.lobby-tab.active{background:var(--gold);color:var(--dark);}
+.lobby-card{background:var(--dark2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:2rem;width:100%;max-width:420px;box-shadow:0 24px 60px rgba(0,0,0,.5);}
+.room-code-display{font-family:var(--font-display);font-size:48px;letter-spacing:8px;color:var(--gold);text-align:center;padding:1.25rem;background:var(--dark3);border-radius:var(--radius);border:1px solid rgba(240,192,64,.25);margin:1rem 0;}
+.room-list{margin-top:0.5rem;}
+.room-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--dark3);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;cursor:pointer;transition:border-color .15s;}
+.room-item:hover{border-color:var(--gold);}
+.room-item-code{font-family:var(--font-display);font-size:22px;letter-spacing:2px;color:var(--gold);min-width:70px;}
+.room-item-info{flex:1;}
+.room-item-name{font-weight:700;font-size:14px;}
+.room-item-meta{font-size:11px;color:rgba(255,255,255,.3);margin-top:2px;}
+.room-badge{font-size:10px;padding:3px 8px;border-radius:10px;font-weight:700;}
+.room-badge-open{background:rgba(0,196,125,.15);color:var(--green);border:1px solid rgba(0,196,125,.3);}
+.room-badge-closed{background:rgba(232,64,64,.15);color:var(--red);border:1px solid rgba(232,64,64,.3);}
+.divider{display:flex;align-items:center;gap:10px;margin:1.25rem 0;color:rgba(255,255,255,.2);font-size:12px;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.top-brand-room{font-size:12px;color:rgba(255,255,255,.35);padding:2px 8px;background:var(--dark3);border-radius:10px;border:1px solid var(--border);cursor:pointer;transition:all .15s;}
+.top-brand-room:hover{color:var(--gold);border-color:rgba(240,192,64,.3);}
+</style>
+</head>
+<body>
+
+<div class="screen active" id="screen-loading">
+  <div class="spinner"></div>
+  <div class="loading-text">Loading Game...</div>
+</div>
+
+<div class="screen" id="screen-lobby">
+  <div class="lobby-hero">
+    <span class="login-trophy">🏆</span>
+    <div class="login-title">WC 2026</div>
+    <div class="login-sub">Stock Market Fantasy League</div>
+  </div>
+
+  <div class="lobby-tabs" id="lobby-tabs">
+    <button class="lobby-tab active" onclick="switchLobbyTab('join',this)">Join a Room</button>
+    <button class="lobby-tab" onclick="switchLobbyTab('create',this)">Create Room</button>
+  </div>
+
+  <div class="lobby-card" id="lobby-join-panel">
+    <div id="lobby-rooms-list"><div style="text-align:center;padding:2rem;color:rgba(255,255,255,.3);font-size:13px;"><div class="spinner" style="margin:0 auto 12px;"></div>Loading rooms…</div></div>
+    <div class="divider">or enter code directly</div>
+    <label class="form-label">Room Code</label>
+    <input type="text" class="form-input" id="lobby-join-code" placeholder="e.g. WOLF" maxlength="6" style="text-transform:uppercase;letter-spacing:3px;font-family:var(--font-display);font-size:20px;text-align:center;" oninput="this.value=this.value.toUpperCase()" />
+    <div id="lobby-join-error" class="error-msg"></div>
+    <button class="btn btn-gold" onclick="joinRoomByCode()">Enter Room →</button>
+  </div>
+
+  <div class="lobby-card" id="lobby-create-panel" style="display:none;">
+    <label class="form-label">Room Name</label>
+    <input type="text" class="form-input" id="lobby-room-name" placeholder="e.g. Office League, Family Cup…" maxlength="30" />
+    <label class="form-label">Admin PIN for this room</label>
+    <input type="password" class="form-input" id="lobby-room-pin" placeholder="Choose a PIN (min 4 digits)" />
+    <label class="form-label">Custom room code (optional)</label>
+    <input type="text" class="form-input" id="lobby-room-code-custom" placeholder="Leave blank for random" maxlength="6" style="text-transform:uppercase;letter-spacing:3px;font-family:var(--font-display);font-size:18px;text-align:center;" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')" />
+    <div id="lobby-create-error" class="error-msg"></div>
+    <button class="btn btn-gold" onclick="createRoom()">🏟 Create Room</button>
+  </div>
+</div>
+
+<div class="screen" id="screen-login">
+  <div class="login-hero">
+    <span class="login-trophy">🏆</span>
+    <div class="login-title">WC 2026</div>
+    <div class="login-sub">Stock Market Fantasy League</div>
+  </div>
+  <div class="login-card">
+    <label class="form-label">Your name</label>
+    <input type="text" class="form-input" id="login-name" placeholder="e.g. Rahul" />
+    <label class="form-label">Role</label>
+    <select class="form-input" id="login-role">
+      <option value="player">&#9917; Player / Investor</option>
+      <option value="admin">&#128737; Commissioner (Admin)</option>
+    </select>
+    <div id="admin-pin-wrap" style="display:none;">
+      <label class="form-label">Admin PIN</label>
+      <input type="password" class="form-input" id="admin-pin" placeholder="Enter PIN" />
+    </div>
+    <div id="login-error" class="error-msg"></div>
+    <button class="btn btn-gold" onclick="doLogin()">Enter Market</button>
+  </div>
+</div>
+
+<div id="main-app">
+  <div class="top-bar">
+    <div class="top-brand">
+      <span style="font-size:22px;filter:drop-shadow(0 0 8px rgba(240,192,64,.5));">&#127942;</span>
+      <span class="top-brand-name">WC2026</span>
+      <span class="top-brand-room" id="room-indicator" onclick="leaveRoom()" title="Leave room">🏠 —</span>
+    </div>
+    <div class="top-right">
+      <span id="market-status-badge" class="badge badge-green">Market Open</span>
+      <span id="user-badge" class="badge badge-blue"></span>
+      <button class="btn btn-ghost" style="padding:6px 10px;" onclick="doLogout()">&#x2192; Out</button>
+    </div>
+  </div>
+  <div class="nav-tabs" id="nav-tabs"></div>
+  <div class="tab-content">
+
+    <div class="screen tab-body" id="tab-portfolio">
+      <div class="metrics-bar">
+        <div class="metric"><div class="metric-label">Cash remaining</div><div class="metric-value green" id="pf-cash">$10,000</div></div>
+        <div class="metric"><div class="metric-label">Holdings value</div><div class="metric-value gold" id="pf-holdings">$0</div></div>
+        <div class="metric"><div class="metric-label">Net worth</div><div class="metric-value" id="pf-net">$10,000</div></div>
+      </div>
+      <div id="portfolio-holdings"></div>
+    </div>
+
+    <div class="screen tab-body" id="tab-market">
+      <div id="market-banner"></div>
+      <input type="text" class="search-input" id="market-search" placeholder="Search countries..." oninput="renderMarket()" />
+      <div class="filter-row">
+        <button class="filter-chip active" onclick="setTierFilter('all',this)">All Tiers</button>
+        <button class="filter-chip" onclick="setTierFilter(1,this)" style="color:var(--t1);">Tier 1 — $3,000</button>
+        <button class="filter-chip" onclick="setTierFilter(2,this)" style="color:var(--t2);">Tier 2 — $1,500</button>
+        <button class="filter-chip" onclick="setTierFilter(3,this)" style="color:var(--t3);">Tier 3 — $750</button>
+        <button class="filter-chip" onclick="setTierFilter(4,this)" style="color:var(--t4);">Tier 4 — $250</button>
+      </div>
+      <div id="market-list"></div>
+      <div style="margin-top:1rem;">
+        <button class="btn btn-gold" id="lock-portfolio-btn" onclick="lockPortfolio()" style="display:none;">&#128274; Lock &amp; Submit Portfolio</button>
+      </div>
+    </div>
+
+    <div class="screen tab-body" id="tab-leaderboard">
+      <div id="champion-display"></div>
+      <div class="section-title">Rankings</div>
+      <div id="leaderboard-list"></div>
+    </div>
+
+    <div class="screen tab-body" id="tab-transactions">
+      <div class="section-title">My Transactions</div>
+      <div id="transactions-list"></div>
+    </div>
+
+    <div class="screen tab-body" id="tab-bracket">
+      <div class="section-title">Tournament Bracket</div>
+      <div class="stage-tabs" id="bracket-stage-tabs"></div>
+      <div id="bracket-content"></div>
+    </div>
+
+    <div class="screen tab-body" id="tab-admin">
+
+      <div class="admin-card" id="approvals-card">
+        <h3>🪪 Player Approvals</h3>
+        <p style="font-size:12px;color:rgba(255,255,255,.3);margin-bottom:12px;">Players who join must be approved before they can trade.</p>
+        <div id="approvals-list"><div class="empty-state" style="padding:1rem;"><span class="empty-icon">✅</span>No pending approvals.</div></div>
+      </div>
+
+      <div class="admin-card">
+        <h3>&#9881; Market Controls</h3>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:12px;background:var(--dark3);border-radius:var(--radius);border:1px solid var(--border);">
+          <span style="font-size:13px;color:rgba(255,255,255,.5);">Current status:</span>
+          <span id="admin-market-status" class="badge badge-green">Market Open</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <button class="btn btn-green" onclick="toggleMarket(true)">&#128275; Open Trading Window</button>
+          <button class="btn btn-red" onclick="toggleMarket(false)">&#128274; Close Trading Window</button>
+        </div>
+        <p style="font-size:12px;color:rgba(255,255,255,.3);">Opening the window unlocks all player portfolios. Closing prevents any new trades.</p>
+      </div>
+
+      <div class="admin-card">
+        <h3>&#9917; Enter Match Result</h3>
+        <div class="form-row-match">
+          <div>
+            <label class="form-label">Home team</label>
+            <select class="form-input" id="res-home"></select>
+          </div>
+          <div class="vs-label">VS</div>
+          <div>
+            <label class="form-label">Away team</label>
+            <select class="form-input" id="res-away"></select>
+          </div>
+        </div>
+        <div class="form-row-match">
+          <div style="text-align:center;">
+            <label class="form-label" style="text-align:left;">Home score</label>
+            <input type="number" class="score-input" id="res-home-score" value="0" min="0" />
+          </div>
+          <div class="vs-label">&#8212;</div>
+          <div style="text-align:center;">
+            <label class="form-label" style="text-align:left;">Away score</label>
+            <input type="number" class="score-input" id="res-away-score" value="0" min="0" />
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin:10px 0 8px;">
+          <label class="form-label" style="margin:0;white-space:nowrap;">Stage</label>
+          <select class="form-input" id="res-stage">
+            <option value="group">Group Stage</option>
+            <option value="r32">Round of 32</option>
+            <option value="r16">Round of 16</option>
+            <option value="qf">Quarter-Final</option>
+            <option value="sf">Semi-Final</option>
+            <option value="final">Final</option>
+          </select>
+        </div>
+        <div id="res-error" class="error-msg"></div>
+        <button class="btn btn-gold" onclick="submitResult()" style="margin-top:8px;">&#10003; Apply Result &amp; Update Prices</button>
+      </div>
+
+      <div class="admin-card">
+        <h3>&#127885; Tournament Advancement</h3>
+        <p style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:14px;">Toggle which teams advance to each knockout stage. Results submitted above auto-mark winners. You can also manually adjust here.</p>
+        <div id="advancement-manager"></div>
+      </div>
+
+      <div class="admin-card" style="border-color:rgba(232,64,64,.25);">
+        <h3 style="color:var(--red);">&#128260; Reset Game</h3>
+        <p style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:14px;">Wipe all player data, prices, results, and bracket data for this room. Use this to replay the game fresh with the same group.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-red" onclick="confirmReset()">Reset This Room</button>
+          <button class="btn" style="border-color:rgba(232,64,64,.4);color:rgba(232,64,64,.7);" onclick="confirmDeleteRoom()">🗑 Delete Room</button>
+        </div>
+      </div>
+
+      <div class="section-title">Results Log</div>
+      <div id="results-log"></div>
+      <div class="section-title">All Player Portfolios</div>
+      <div id="admin-portfolios"></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="pending-overlay" id="pending-overlay" style="display:none;">
+  <div class="pending-box">
+    <span class="pending-icon">⏳</span>
+    <div class="pending-title">Waiting for Approval</div>
+    <p class="pending-sub">The Commissioner needs to let you in. Please wait while your entry is approved.</p>
+    <div style="margin-top:1.25rem;font-size:12px;color:rgba(255,255,255,.25);">Auto-checking every 5 seconds…</div>
+    <button class="btn btn-ghost" style="margin-top:1rem;width:100%;" onclick="doLogout()">← Back to Login</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="new-room-modal" style="display:none;">
+  <div class="modal-box" style="text-align:center;">
+    <div style="font-size:36px;margin-bottom:12px;">🏟</div>
+    <h3>Room Created!</h3>
+    <p id="new-room-name-display" style="font-size:16px;font-weight:700;color:var(--white);margin-bottom:4px;"></p>
+    <p style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:0.5rem;">Share this code with players:</p>
+    <div class="room-code-display" id="new-room-code-display"></div>
+    <p style="font-size:12px;color:rgba(255,255,255,.3);margin-bottom:1.25rem;">Players enter this code at the lobby to join your game.</p>
+    <div class="modal-actions" style="justify-content:center;">
+      <button class="btn btn-gold" onclick="proceedFromNewRoom()">Continue as Admin →</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="delete-room-modal" style="display:none;">
+  <div class="modal-box">
+    <h3>🗑 Delete Room?</h3>
+    <p>This will permanently remove the room "<span id="delete-room-name"></span>" and all its data. Players will no longer be able to join. This cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('delete-room-modal')">Cancel</button>
+      <button class="btn btn-red" onclick="doDeleteRoom()">Yes, Delete Room</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="reset-modal" style="display:none;">
+  <div class="modal-box">
+    <h3>&#9888; Reset Game?</h3>
+    <p>This will permanently delete all player portfolios, match results, prices, and bracket data. Everyone starts completely fresh. This cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('reset-modal')">Cancel</button>
+      <button class="btn btn-red" onclick="doReset()">Yes, Reset Everything</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+<script>
+// ── FIREBASE STORAGE SYNC CONFIGURATION ───────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyDKPBUzyJjT1H0ww-lfGIBp49K9lb8Rly8",
+  authDomain: "wc2026-market-game.firebaseapp.com",
+  databaseURL: "https://wc2026-market-game-default-rtdb.firebaseio.com",
+  projectId: "wc2026-market-game",
+  storageBucket: "wc2026-market-game.firebasestorage.app",
+  messagingSenderId: "884567905562",
+  appId: "1:884567905562:web:5e6b21270ed2a16f5a88a3",
+  measurementId: "G-Q2WL2W1FW3"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const ADMIN_PIN = '2026';
+const STARTING_CASH = 10000;
+const MAX_PER_COUNTRY = 3500;
+
+let currentRoomCode = null;   // which room we're in
+let currentRoomName = '';
+
+// ── ROOMS REGISTRY (FIREBASE HANDLERS) ────────────────────────────────
+async function loadRoomsRegistry() {
+  try {
+    const snapshot = await db.ref('rooms_registry').once('value');
+    return snapshot.val() || {};
+  } catch(e) { return {}; }
+}
+
+async function saveRoomsRegistry(registry) {
+  try { 
+    await db.ref('rooms_registry').set(registry); 
+  } catch(e) {}
+}
+
+function generateRoomCode() {
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code='';
+  for(let i=0;i<4;i++) code+=chars[Math.floor(Math.random()*chars.length)];
+  return code;
+}
+
+async function renderLobby() {
+  const registry = await loadRoomsRegistry();
+  const rooms = Object.entries(registry);
+  const listEl = document.getElementById('lobby-rooms-list');
+  if (!rooms.length) {
+    listEl.innerHTML='<div style="text-align:center;padding:2rem;color:rgba(255,255,255,.3);font-size:13px;"><span style="font-size:32px;display:block;margin-bottom:8px;">🏟</span>No rooms yet. Create one!</div>';
+    return;
+  }
+  listEl.innerHTML='<div class="form-label" style="margin-top:0;margin-bottom:8px;">Active Rooms</div>'+
+    rooms.map(([code,info])=>`
+      <div class="room-item" onclick="selectRoom('${code}')">
+        <span class="room-item-code">${code}</span>
+        <div class="room-item-info">
+          <div class="room-item-name">${info.name||'Unnamed Room'}</div>
+          <div class="room-item-meta">${info.playerCount||0} player${(info.playerCount||0)!==1?'s':''} · Created ${new Date(info.createdAt).toLocaleDateString()}</div>
+        </div>
+        <span class="room-badge ${info.marketOpen!==false?'room-badge-open':'room-badge-closed'}">${info.marketOpen!==false?'Open':'Closed'}</span>
+      </div>`).join('');
+}
+
+function switchLobbyTab(tab, el) {
+  document.querySelectorAll('.lobby-tab').forEach(t=>t.classList.remove('active')); el.classList.add('active');
+  document.getElementById('lobby-join-panel').style.display = tab==='join'?'block':'none';
+  document.getElementById('lobby-create-panel').style.display = tab==='create'?'block':'none';
+}
+
+function selectRoom(code) {
+  document.getElementById('lobby-join-code').value = code;
+  document.getElementById('lobby-join-error').textContent='';
+}
+
+async function joinRoomByCode() {
+  const code = document.getElementById('lobby-join-code').value.trim().toUpperCase();
+  const err = document.getElementById('lobby-join-error');
+  if (!code) { err.textContent='Enter a room code.'; return; }
+  const registry = await loadRoomsRegistry();
+  if (!registry[code]) { err.textContent='Room not found. Check the code and try again.'; return; }
+  err.textContent='';
+  currentRoomCode = code;
+  currentRoomName = registry[code].name||code;
+  // Load room state
+  await load();
+  document.getElementById('room-indicator').textContent = `🏠 ${code}`;
+  document.getElementById('screen-lobby').classList.remove('active');
+  document.getElementById('screen-login').classList.add('active');
+}
+
+async function createRoom() {
+  const name = document.getElementById('lobby-room-name').value.trim();
+  const pin = document.getElementById('lobby-room-pin').value.trim();
+  let code = document.getElementById('lobby-room-code-custom').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const err = document.getElementById('lobby-create-error');
+  if (!name) { err.textContent='Enter a room name.'; return; }
+  if (!pin || pin.length < 4) { err.textContent='PIN must be at least 4 characters.'; return; }
+  const registry = await loadRoomsRegistry();
+  if (!code) {
+    let attempts=0;
+    do { code=generateRoomCode(); attempts++; } while(registry[code] && attempts<20);
+  } else if (registry[code]) {
+    err.textContent=`Room code "${code}" is already taken. Try another.`; return;
+  }
+  err.textContent='';
+  // Store room in registry
+  registry[code] = {name, pin, createdAt: Date.now(), playerCount:0, marketOpen:true};
+  await saveRoomsRegistry(registry);
+  // Pre-initialise room state
+  currentRoomCode = code;
+  currentRoomName = name;
+  state = freshState();
+  state.roomPin = pin;
+  await save();
+  document.getElementById('room-indicator').textContent = `🏠 ${code}`;
+  // Show the new code to user
+  document.getElementById('screen-lobby').classList.remove('active');
+  document.getElementById('new-room-modal').style.display='flex';
+  document.getElementById('new-room-code-display').textContent = code;
+  document.getElementById('new-room-name-display').textContent = name;
+}
+
+function proceedFromNewRoom() {
+  closeModal('new-room-modal');
+  document.getElementById('screen-login').classList.add('active');
+  document.getElementById('login-role').value='admin';
+  document.getElementById('admin-pin-wrap').style.display='block';
+}
+
+async function leaveRoom() {
+  if (!confirm('Leave this room and go back to the lobby?')) return;
+  stopPolling();
+  currentRoomCode=null; currentRoomName='';
+  currentUser=null; state=freshState();
+  document.getElementById('main-app').classList.remove('vis');
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('screen-login').classList.remove('active');
+  document.getElementById('pending-overlay').style.display='none';
+  document.getElementById('screen-lobby').classList.add('active');
+  document.getElementById('lobby-join-code').value='';
+  document.getElementById('lobby-join-error').textContent='';
+  renderLobby();
+}
+
+const COUNTRIES = [
+  {name:'Argentina',flag:'🇦🇷',tier:1,price:3000,maxShares:1},
+  {name:'France',flag:'🇫🇷',tier:1,price:3000,maxShares:1},
+  {name:'Brazil',flag:'🇧🇷',tier:1,price:3000,maxShares:1},
+  {name:'England',flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',tier:1,price:3000,maxShares:1},
+  {name:'Spain',flag:'🇪🇸',tier:1,price:3000,maxShares:1},
+  {name:'Germany',flag:'🇩🇪',tier:1,price:3000,maxShares:1},
+  {name:'Portugal',flag:'🇵🇹',tier:1,price:3000,maxShares:1},
+  {name:'Netherlands',flag:'🇳🇱',tier:1,price:3000,maxShares:1},
+  {name:'Uruguay',flag:'🇺🇾',tier:2,price:1500,maxShares:2},
+  {name:'Italy',flag:'🇮🇹',tier:2,price:1500,maxShares:2},
+  {name:'Belgium',flag:'🇧🇪',tier:2,price:1500,maxShares:2},
+  {name:'Colombia',flag:'🇨🇴',tier:2,price:1500,maxShares:2},
+  {name:'Croatia',flag:'🇭🇷',tier:2,price:1500,maxShares:2},
+  {name:'Morocco',flag:'🇲🇦',tier:2,price:1500,maxShares:2},
+  {name:'USA',flag:'🇺🇸',tier:2,price:1500,maxShares:2},
+  {name:'Mexico',flag:'🇲🇽',tier:2,price:1500,maxShares:2},
+  {name:'Japan',flag:'🇯🇵',tier:2,price:1500,maxShares:2},
+  {name:'Senegal',flag:'🇸🇳',tier:2,price:1500,maxShares:2},
+  {name:'South Korea',flag:'🇰🇷',tier:3,price:750,maxShares:3},
+  {name:'Austria',flag:'🇦🇹',tier:3,price:750,maxShares:3},
+  {name:'Switzerland',flag:'🇨🇭',tier:3,price:750,maxShares:3},
+  {name:'Ecuador',flag:'🇪🇨',tier:3,price:750,maxShares:3},
+  {name:'Nigeria',flag:'🇳🇬',tier:3,price:750,maxShares:3},
+  {name:'Türkiye',flag:'🇹🇷',tier:3,price:750,maxShares:3},
+  {name:'Ukraine',flag:'🇺🇦',tier:3,price:750,maxShares:3},
+  {name:'Sweden',flag:'🇸🇪',tier:3,price:750,maxShares:3},
+  {name:'Australia',flag:'🇦🇺',tier:3,price:750,maxShares:3},
+  {name:'Iran',flag:'🇮🇷',tier:3,price:750,maxShares:3},
+  {name:'Algeria',flag:'🇩🇿',tier:3,price:750,maxShares:3},
+  {name:'Denmark',flag:'🇩🇰',tier:3,price:750,maxShares:3},
+  {name:'Norway',flag:'🇳🇴',tier:3,price:750,maxShares:3},
+  {name:'Chile',flag:'🇨🇱',tier:3,price:750,maxShares:3},
+  {name:'South Africa',flag:'🇿🇦',tier:4,price:250,maxShares:14},
+  {name:'Canada',flag:'🇨🇦',tier:4,price:250,maxShares:14},
+  {name:'Scotland',flag:'🏴\u200d󠁢󠁳󠁣󠁴󠁿',tier:4,price:250,maxShares:14},
+  {name:'Paraguay',flag:'🇵🇾',tier:4,price:250,maxShares:14},
+  {name:'Egypt',flag:'🇪🇬',tier:4,price:250,maxShares:14},
+  {name:'Czechia',flag:'🇨🇿',tier:4,price:250,maxShares:14},
+  {name:'Saudi Arabia',flag:'🇸🇦',tier:4,price:250,maxShares:14},
+  {name:'Jordan',flag:'🇯🇴',tier:4,price:250,maxShares:14},
+  {name:'Uzbekistan',flag:'🇺🇿',tier:4,price:250,maxShares:14},
+  {name:'Ghana',flag:'🇬🇭',tier:4,price:250,maxShares:14},
+  {name:'Tunisia',flag:'🇹🇳',tier:4,price:250,maxShares:14},
+  {name:'Bosnia & Herzegovina',flag:'🇧🇦',tier:4,price:250,maxShares:14},
+  {name:'Haiti',flag:'🇭🇹',tier:4,price:250,maxShares:14},
+  {name:'Panama',flag:'🇵🇦',tier:4,price:250,maxShares:14},
+  {name:'Iraq',flag:'🇮🇶',tier:4,price:250,maxShares:14},
+  {name:'DR Congo',flag:'🇨🇩',tier:4,price:250,maxShares:14},
+];
+
+const TIER_NAMES = {1:'Mega-Cap',2:'Large-Cap',3:'Mid-Cap',4:'Penny Stock'};
+const TIER_COLORS = {1:'#3a8de8',2:'#00c47d',3:'#f0c040',4:'#e84040'};
+const ROUND_MULTIPLIERS = {r32:0.20,r16:0.30,qf:0.40,sf:0.50,final:0.80};
+const STAGES = [
+  {key:'group',label:'Group Stage'},
+  {key:'r32',label:'Round of 32'},
+  {key:'r16',label:'Round of 16'},
+  {key:'qf',label:'Quarter-Finals'},
+  {key:'sf',label:'Semi-Finals'},
+  {key:'final',label:'Final'},
+];
+
+// ── STATE ──────────────────────────────────────────
+function freshState() {
+  const prices = {};
+  COUNTRIES.forEach(c => { prices[c.name] = c.price; });
+  return {players:{},prices,eliminated:{},results:[],marketOpen:true,currentUser:null,
+          advancement:{r32:[],r16:[],qf:[],sf:[],final:[]},champion:null,
+          transactions:{},pendingPlayers:{}};
+}
+let state = freshState();
+let currentUser = null; 
+
+// ── SYNC LOGIC (REWRITTEN FOR REALTIME FIREBASE) ─────────
+async function save() {
+  if (!currentRoomCode) return;
+  try {
+    const toSave = Object.assign({}, state);
+    delete toSave.currentUser; 
+    await db.ref('rooms/' + currentRoomCode).set(toSave);
+  } catch(e) { console.error('Save failed:', e); }
+}
+
+async function load() {
+  if (!currentRoomCode) return;
+  try {
+    const snapshot = await db.ref('rooms/' + currentRoomCode).once('value');
+    const parsed = snapshot.val();
+    if (parsed) {
+      state = Object.assign(freshState(), parsed);
+      if (!state.advancement) state.advancement={r32:[],r16:[],qf:[],sf:[],final:[]};
+      if (!state.transactions) state.transactions={};
+      if (!state.pendingPlayers) state.pendingPlayers={};
+      Object.entries(state.players).forEach(([name,p])=>{
+        if (p.approved===undefined) p.approved=true;
+        if (!state.transactions[name]) state.transactions[name]=[];
+      });
+      COUNTRIES.forEach(c=>{ if(state.prices[c.name]===undefined) state.prices[c.name]=c.price; });
+    }
+  } catch(e) {
+    state = freshState();
+  }
+}
+
+function startPolling() {
+  if (!currentRoomCode) return;
+  db.ref('rooms/' + currentRoomCode).on('value', (snapshot) => {
+    const parsed = snapshot.val();
+    if (!parsed || !currentUser) return;
+
+    const myPlayer = state.players[currentUser];
+    state = Object.assign(freshState(), parsed);
+    if (myPlayer && !state.players[currentUser]) {
+      state.players[currentUser] = myPlayer;
+    }
+
+    const pendingOverlay = document.getElementById('pending-overlay');
+    if (pendingOverlay && pendingOverlay.style.display !== 'none') {
+      const myData = state.players[currentUser];
+      if (myData && myData.approved) {
+        pendingOverlay.style.display = 'none';
+        showToast('✅ You have been approved! Welcome to the market!', 'success');
+      }
+    }
+
+    const activeTab = document.querySelector('.nav-tab.active');
+    if (activeTab) {
+      const tabId = activeTab.getAttribute('onclick').match(/'(\w+)'/)?.[1];
+      if (tabId) renderTab(tabId);
+    }
+    updateMarketBadge();
+  });
+}
+
+function startPendingPolling() {
+  startPolling();
+}
+
+function stopPolling() {
+  if (currentRoomCode) {
+    db.ref('rooms/' + currentRoomCode).off();
+  }
+}
+
+// ── UTILS ──────────────────────────────────────────
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' '+type : '');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 3000);
+}
+function closeModal(id) { document.getElementById(id).style.display='none'; }
+function getPlayer() { return state.players[currentUser]; }
+function holdingsValue(h) {
+  return Object.entries(h).reduce((s,[c,n]) => state.eliminated[c] ? s : s+(state.prices[c]||0)*n, 0);
+}
+function netWorth(p) { return p.cash + holdingsValue(p.holdings); }
+function flagOf(n) { return (COUNTRIES.find(c=>c.name===n)||{}).flag||''; }
+function updateMarketBadge() {
+  const b = document.getElementById('market-status-badge');
+  if (b) { b.textContent = state.marketOpen?'Market Open':'Market Closed'; b.className='badge '+(state.marketOpen?'badge-green':'badge-red'); }
+}
+
+// ── AUTH ───────────────────────────────────────────
+document.getElementById('login-role').addEventListener('change', function() {
+  document.getElementById('admin-pin-wrap').style.display = this.value==='admin'?'block':'none';
+});
+
+async function doLogin() {
+  const name = document.getElementById('login-name').value.trim();
+  const role = document.getElementById('login-role').value;
+  const pin = document.getElementById('admin-pin').value;
+  const err = document.getElementById('login-error');
+  if (!name) { err.textContent='Please enter your name.'; return; }
+
+  await load();
+
+  const roomPin = state.roomPin || ADMIN_PIN;
+  if (role==='admin' && pin!==roomPin) { err.textContent='Incorrect admin PIN.'; return; }
+  err.textContent='';
+
+  if (!state.players[name]) {
+    state.players[name]={cash:STARTING_CASH,holdings:{},locked:false,role,
+      approved: role==='admin', joinedAt: Date.now()};
+    if (!state.transactions) state.transactions={};
+    state.transactions[name]=[];
+    if (role !== 'admin') {
+      if (!state.pendingPlayers) state.pendingPlayers={};
+      state.pendingPlayers[name]={joinedAt:Date.now()};
+    }
+    await save();
+    try {
+      const registry = await loadRoomsRegistry();
+      if (registry[currentRoomCode]) {
+        registry[currentRoomCode].playerCount = Object.values(state.players).filter(p=>p.role!=='admin').length;
+        await saveRoomsRegistry(registry);
+      }
+    } catch(e) {}
+  } else if (role==='admin' && state.players[name].role !== 'admin') {
+    state.players[name].role = 'admin';
+    state.players[name].approved = true;
+    await save();
+  }
+  currentUser = name;
+
+  if (!state.transactions) state.transactions={};
+  if (!state.transactions[currentUser]) state.transactions[currentUser]=[];
+
+  const p = state.players[currentUser];
+
+  if (!p.approved && p.role !== 'admin') {
+    document.getElementById('screen-login').classList.remove('active');
+    document.getElementById('pending-overlay').style.display='flex';
+    startPendingPolling();
+    return;
+  }
+
+  showMainApp();
+}
+
+function doLogout() {
+  currentUser = null;
+  stopPolling();
+  document.getElementById('main-app').classList.remove('vis');
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('pending-overlay').style.display='none';
+  document.getElementById('screen-login').classList.add('active');
+  document.getElementById('login-name').value='';
+  document.getElementById('login-role').value='player';
+  document.getElementById('admin-pin').value='';
+  document.getElementById('admin-pin-wrap').style.display='none';
+}
+
+// ── MAIN APP ───────────────────────────────────────
+function showMainApp() {
+  document.getElementById('screen-login').classList.remove('active');
+  document.getElementById('pending-overlay').style.display='none';
+  const app = document.getElementById('main-app');
+  app.style.display='flex'; app.classList.add('vis');
+  const p = state.players[currentUser];
+  const isAdmin = p.role==='admin';
+  document.getElementById('user-badge').textContent = currentUser;
+  document.getElementById('room-indicator').textContent = `🏠 ${currentRoomCode}`;
+  const tabs = [
+    {id:'portfolio',label:'My Portfolio'},
+    {id:'market',label:'Market'},
+    {id:'transactions',label:'📋 Transactions'},
+    {id:'leaderboard',label:'Leaderboard'},
+    {id:'bracket',label:'Bracket'}
+  ];
+  if (isAdmin) tabs.push({id:'admin',label:'⚙ Admin'});
+  const nav = document.getElementById('nav-tabs');
+  nav.innerHTML = tabs.map((t,i)=>`<button class="nav-tab${i===0?' active':''}" onclick="switchTab('${t.id}',this)">${t.label}</button>`).join('');
+  if (isAdmin) { populateTeamSelects(); renderAdvancementManager(); }
+  updateMarketBadge();
+  switchTab('portfolio', nav.querySelector('.nav-tab'));
+  startPolling();
+}
+
+function switchTab(id, el) {
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.tab-content .screen').forEach(s=>s.classList.remove('active'));
+  const tab = document.getElementById('tab-'+id);
+  if (tab) { tab.classList.add('active'); renderTab(id); }
+}
+function renderTab(id) {
+  if (id==='portfolio') renderPortfolio();
+  if (id==='market') renderMarket();
+  if (id==='transactions') renderTransactions();
+  if (id==='leaderboard') renderLeaderboard();
+  if (id==='bracket') renderBracket();
+  if (id==='admin') renderAdmin();
+}
+
+// ── PORTFOLIO ──────────────────────────────────────
+function renderPortfolio() {
+  const p = getPlayer();
+  if (!p) return;
+  const hv = holdingsValue(p.holdings);
+  document.getElementById('pf-cash').textContent = '$'+p.cash.toLocaleString();
+  document.getElementById('pf-holdings').textContent = '$'+Math.round(hv).toLocaleString();
+  document.getElementById('pf-net').textContent = '$'+Math.round(p.cash+hv).toLocaleString();
+  const el = document.getElementById('portfolio-holdings');
+  const entries = Object.entries(p.holdings).filter(([,s])=>s>0);
+  if (!entries.length) { el.innerHTML='<div class="empty-state"><span class="empty-icon">📊</span>No holdings yet. Go to Market to invest.</div>'; return; }
+  el.innerHTML = `<div class="holdings-header"><span>Country</span><span>Shares</span><span>Price</span><span>Value</span></div>`+
+    entries.map(([country,shares])=>{
+      const c = COUNTRIES.find(x=>x.name===country);
+      const cp = state.prices[country]||0;
+      const val = state.eliminated[country]?0:cp*shares;
+      const pct = ((cp-(c?c.price:cp))/(c?c.price:cp)*100);
+      const elim = state.eliminated[country];
+      return `<div class="holding-row" style="${elim?'opacity:.45;':''}">
+        <span><span class="holding-flag">${c?c.flag:''}</span>${country}${elim?' <span class="badge badge-red" style="font-size:10px;margin-left:4px;">Out</span>':''}</span>
+        <span style="text-align:right;">${shares}</span>
+        <span style="text-align:right;">$${Math.round(cp).toLocaleString()}<br><span class="${pct>=0?'price-up':'price-down'}" style="font-size:11px;">${pct>=0?'+':''}${pct.toFixed(1)}%</span></span>
+        <span style="text-align:right;font-weight:700;">$${Math.round(val).toLocaleString()}</span>
+      </div>`;
+    }).join('');
+}
+
+// ── MARKET ────────────────────────────────────────
+let tierFilter='all';
+function setTierFilter(t,el) { tierFilter=t; document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active')); el.classList.add('active'); renderMarket(); }
+
+function renderMarket() {
+  const p = getPlayer();
+  if (!p) return;
+  const isLocked = p.locked;
+  const search = (document.getElementById('market-search')||{}).value?.toLowerCase()||'';
+  const banner = document.getElementById('market-banner');
+  if (!state.marketOpen) { banner.innerHTML='🔒 Trading window is closed. Wait for the commissioner to open the next window.'; banner.className='banner banner-closed'; }
+  else if (isLocked) { banner.innerHTML='✓ Your portfolio is locked in. Good luck!'; banner.className='banner banner-locked'; }
+  else { banner.innerHTML='🕐 Market is open — build your portfolio before the window closes!'; banner.className='banner banner-open'; }
+  const lockBtn = document.getElementById('lock-portfolio-btn');
+  lockBtn.style.display = (!isLocked && state.marketOpen && p.role!=='admin')?'block':'none';
+  let html='';
+  [1,2,3,4].forEach(tier=>{
+    if (tierFilter!=='all' && tierFilter!=tier) return;
+    const countries = COUNTRIES.filter(c=>c.tier===tier && (!search||c.name.toLowerCase().includes(search)));
+    if (!countries.length) return;
+    const maxS = tier===4?'Unlimited*':`Max ${countries[0].maxShares} share${countries[0].maxShares>1?'s':''}`;
+    html+=`<div class="tier-section"><div class="tier-header">
+      <span class="tier-dot" style="background:${TIER_COLORS[tier]};"></span>
+      <span class="tier-label" style="color:${TIER_COLORS[tier]};">Tier ${tier} — ${TIER_NAMES[tier]}</span>
+      <span class="tier-info">$${countries[0].price.toLocaleString()}/share · ${maxS}</span>
+    </div><div class="country-grid">${countries.map(c=>{
+      const owned=p.holdings[c.name]||0, cp=state.prices[c.name]||c.price;
+      const pct=((cp-c.price)/c.price*100), elim=state.eliminated[c.name];
+      const canBuy=!isLocked&&state.marketOpen&&!elim;
+      const canAfford = p.cash >= cp;
+      const atMax = owned >= (c.tier===4?Math.floor(MAX_PER_COUNTRY/c.price):c.maxShares);
+      const atMaxCost = (owned+1)*cp > MAX_PER_COUNTRY;
+      return `<div class="country-card ${owned>0?'owned':''} ${elim?'eliminated':''}">
+        <span class="country-flag">${c.flag}</span>
+        <div class="country-info">
+          <div class="country-name">${c.name}${elim?' 💀':''}</div>
+          <div class="country-price">$${Math.round(cp).toLocaleString()} ${pct!==0?`<span class="${pct>0?'price-up':'price-down'}">${pct>0?'+':''}${pct.toFixed(0)}%</span>`:''}</div>
+          ${canBuy?`<div class="cash-inline">Balance: $${p.cash.toLocaleString()}</div>`:''}
+        </div>
+        <div class="buy-sell-wrap">
+          ${canBuy?`<button class="btn-sell" onclick="changeShares('${c.name}',-1)" ${owned<=0?'disabled':''}>Sell</button>
+          <span class="share-count" style="min-width:22px;text-align:center;">${owned}</span>
+          <button class="btn-buy" onclick="changeShares('${c.name}',1)" ${!canAfford||atMax||atMaxCost?'disabled':''}>Buy</button>`
+          :`<span class="share-count">${owned}</span>`}
+        </div>
+      </div>`;
+    }).join('')}</div></div>`;
+  });
+  document.getElementById('market-list').innerHTML = html||'<div class="empty-state">No countries match your search.</div>';
+}
+
+async function changeShares(name, delta) {
+  const p = getPlayer();
+  if (p.locked) { showToast('Your portfolio is locked.','error'); return; }
+  if (!state.marketOpen) { showToast('Trading window is closed.','error'); return; }
+  const c = COUNTRIES.find(x=>x.name===name); if (!c) return;
+  const cp=state.prices[name]||c.price, owned=p.holdings[name]||0;
+  const maxShares = c.tier===4?Math.floor(MAX_PER_COUNTRY/c.price):c.maxShares;
+  let txnType='';
+  if (delta>0) {
+    if (owned>=maxShares) { showToast(`Max ${maxShares} shares for ${name}.`,'error'); return; }
+    if ((owned+1)*cp>MAX_PER_COUNTRY) { showToast(`Max $${MAX_PER_COUNTRY.toLocaleString()} per country.`,'error'); return; }
+    if (p.cash<cp) { showToast('Not enough cash!','error'); return; }
+    p.cash-=cp; p.holdings[name]=owned+1; txnType='buy';
+    showToast(`✅ Bought 1 share of ${c.flag} ${name} for $${Math.round(cp).toLocaleString()}. Balance: $${p.cash.toLocaleString()}`, 'success');
+  } else {
+    if (owned<=0) return;
+    p.cash+=cp; p.holdings[name]=owned-1; txnType='sell';
+    showToast(`💰 Sold 1 share of ${c.flag} ${name} for $${Math.round(cp).toLocaleString()}. Balance: $${p.cash.toLocaleString()}`, 'success');
+  }
+  if (!state.transactions) state.transactions={};
+  if (!state.transactions[currentUser]) state.transactions[currentUser]=[];
+  state.transactions[currentUser].push({
+    type: txnType, country: name, flag: c.flag,
+    price: Math.round(cp), shares: txnType==='buy'?owned+1:owned-1,
+    balanceAfter: p.cash, timestamp: Date.now()
+  });
+  await save(); renderMarket(); renderPortfolio();
+}
+
+async function lockPortfolio() {
+  const p=getPlayer();
+  if (!Object.entries(p.holdings).some(([,s])=>s>0)) { showToast('Add at least one country before locking.','error'); return; }
+  p.locked=true; await save(); showToast('Portfolio locked! Good luck! 🔒','success'); renderMarket();
+}
+
+// ── TRANSACTIONS ───────────────────────────────────
+function renderTransactions() {
+  const el = document.getElementById('transactions-list');
+  if (!el) return;
+  const txns = (state.transactions && state.transactions[currentUser]) || [];
+  if (!txns.length) {
+    el.innerHTML='<div class="empty-state"><span class="empty-icon">📋</span>No transactions yet. Go to Market to start trading.</div>';
+    return;
+  }
+  el.innerHTML = `<div class="txn-row txn-header">
+    <span>Type</span><span>Country</span><span style="text-align:right;">Price</span>
+    <span style="text-align:right;">Shares</span><span style="text-align:right;">Balance After</span>
+  </div>`+
+  [...txns].reverse().map(t=>{
+    const dt=new Date(t.timestamp).toLocaleString();
+    return `<div class="txn-row">
+      <span><span class="${t.type==='buy'?'txn-badge-buy':'txn-badge-sell'}">${t.type==='buy'?'BUY':'SELL'}</span></span>
+      <span>${t.flag} ${t.country}<br><span class="txn-balance">${dt}</span></span>
+      <span style="text-align:right;font-weight:700;">$${t.price.toLocaleString()}</span>
+      <span style="text-align:right;">${t.shares} share${t.shares!==1?'s':''}</span>
+      <span style="text-align:right;color:var(--green);font-weight:700;">$${t.balanceAfter.toLocaleString()}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── LEADERBOARD ────────────────────────────────────
+function renderLeaderboard() {
+  const ce = document.getElementById('champion-display');
+  if (state.champion) {
+    const c=COUNTRIES.find(x=>x.name===state.champion);
+    ce.innerHTML=`<div class="champion-banner"><span class="champion-flag">${c?c.flag:'🏆'}</span><div class="champion-label">🏆 WORLD CHAMPIONS 🏆</div><div style="font-size:20px;font-weight:700;margin-top:4px;">${state.champion}</div></div>`;
+  } else ce.innerHTML='';
+  const el=document.getElementById('leaderboard-list');
+  const players=Object.entries(state.players).filter(([,p])=>p.role!=='admin').map(([n,p])=>({name:n,worth:netWorth(p)})).sort((a,b)=>b.worth-a.worth);
+  if (!players.length) { el.innerHTML='<div class="empty-state"><span class="empty-icon">👥</span>No players yet.</div>'; return; }
+  el.innerHTML=players.map((p,i)=>{
+    const rc=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    const initials=p.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    const profit=p.worth-STARTING_CASH;
+    return `<div class="lb-row">
+      <span class="lb-rank ${rc}">${i+1}</span>
+      <div class="lb-avatar">${initials}</div>
+      <span class="lb-name">${p.name}</span>
+      <div style="text-align:right;"><div class="lb-worth">$${Math.round(p.worth).toLocaleString()}</div>
+      <div class="lb-change ${profit>=0?'price-up':'price-down'}">${profit>=0?'+':''}$${Math.round(Math.abs(profit)).toLocaleString()}</div></div>
+    </div>`;
+  }).join('');
+}
+
+// ── BRACKET ───────────────────────────────────────
+let bracketStage='r32';
+function renderBracket() {
+  const kStages=STAGES.filter(s=>s.key!=='group');
+  document.getElementById('bracket-stage-tabs').innerHTML=kStages.map(s=>
+    `<button class="stage-chip ${bracketStage===s.key?'active':''}" onclick="setBracketStage('${s.key}',this)">${s.label}</button>`
+  ).join('');
+  renderBracketContent();
+}
+function setBracketStage(key,el) {
+  bracketStage=key;
+  document.querySelectorAll('.stage-chip').forEach(c=>c.classList.remove('active')); el.classList.add('active');
+  renderBracketContent();
+}
+function renderBracketContent() {
+  const el=document.getElementById('bracket-content');
+  const stageLabel=STAGES.find(s=>s.key===bracketStage)?.label||'';
+  const advanced=state.advancement[bracketStage]||[];
+  const stageOrder=['r32','r16','qf','sf','final'];
+  const idx=stageOrder.indexOf(bracketStage);
+  let eligible=[];
+  if (idx===0) { eligible=COUNTRIES.map(c=>c.name).filter(n=>!state.eliminated[n]||advanced.includes(n)); }
+  else { eligible=state.advancement[stageOrder[idx-1]]||[]; }
+
+  if (bracketStage==='final'&&state.champion) {
+    const c=COUNTRIES.find(x=>x.name===state.champion);
+    el.innerHTML=`<div class="champion-banner" style="margin-top:0;"><span class="champion-flag">${c?c.flag:'🏆'}</span><div class="champion-label">WORLD CHAMPION</div><div style="font-size:24px;font-weight:700;margin-top:6px;">${state.champion}</div></div>`;
+    return;
+  }
+  if (!advanced.length&&!eligible.length) {
+    el.innerHTML='<div class="empty-state"><span class="empty-icon">📋</span>No advancement data yet for this stage.</div>'; return;
+  }
+  el.innerHTML=`<p style="font-size:13px;color:rgba(255,255,255,.35);margin-bottom:12px;">${stageLabel} — ${advanced.length} teams advanced${eligible.length?' of '+eligible.length+' eligible':''}</p>
+    <div class="advancement-grid">${eligible.map(name=>{
+      const c=COUNTRIES.find(x=>x.name===name);
+      const isAdv=advanced.includes(name), isElim=state.eliminated[name];
+      return `<div class="adv-card ${isAdv?'advanced':isElim?'eliminated-card':''}">
+        <span style="font-size:18px;">${c?c.flag:''}</span>
+        <span>${name}</span>
+        ${isAdv?'<span class="adv-badge win">✓ Advanced</span>':isElim?'<span class="adv-badge out">Out</span>':''}
+      </div>`;
+    }).join('')}</div>`;
+}
+
+// ── ADMIN ─────────────────────────────────────────
+function populateTeamSelects() {
+  const opts=COUNTRIES.map(c=>`<option value="${c.name}">${c.flag} ${c.name}</option>`).join('');
+  document.getElementById('res-home').innerHTML=opts;
+  document.getElementById('res-away').innerHTML=opts;
+}
+
+async function toggleMarket(open) {
+  state.marketOpen=open;
+  if (open) Object.values(state.players).forEach(p=>{ p.locked=false; });
+  await save();
+  try {
+    const registry = await loadRoomsRegistry();
+    if (registry[currentRoomCode]) { registry[currentRoomCode].marketOpen=open; await saveRoomsRegistry(registry); }
+  } catch(e) {}
+  showToast(open?'✅ Trading window opened!':'🔒 Trading window closed.',open?'success':'');
+  updateMarketBadge(); renderAdmin();
+}
+
+async function submitResult() {
+  const home=document.getElementById('res-home').value, away=document.getElementById('res-away').value;
+  const hs=parseInt(document.getElementById('res-home-score').value)||0;
+  const as_=parseInt(document.getElementById('res-away-score').value)||0;
+  const stage=document.getElementById('res-stage').value;
+  const err=document.getElementById('res-error');
+  if (home===away) { err.textContent='Home and away cannot be the same team.'; return; }
+  err.textContent='';
+  const hc=COUNTRIES.find(c=>c.name===home), ac=COUNTRIES.find(c=>c.name===away);
+  const gk1=hs>as_&&hc.tier===4&&ac.tier===1, gk2=as_>hs&&ac.tier===4&&hc.tier===1;
+  if (stage==='group') {
+    if (hs>as_) { applyPriceChange(home,.25); applyPriceChange(away,-.20); }
+    else if (as_>hs) { applyPriceChange(away,.25); applyPriceChange(home,-.20); }
+    else { applyPriceChange(home,.05); applyPriceChange(away,.05); }
+    if (gk1) { applyPriceChange(home,1.0); applyPriceChange(away,-.40); }
+    if (gk2) { applyPriceChange(away,1.0); applyPriceChange(home,-.40); }
+  } else {
+    const mult=ROUND_MULTIPLIERS[stage]||0;
+    const winner=hs>as_?home:away, loser=hs>as_?away:home;
+    applyPriceChange(winner,mult);
+    state.eliminated[loser]=true; state.prices[loser]=0;
+    if (gk1) applyPriceChange(home,1.0);
+    if (gk2) applyPriceChange(away,1.0);
+    Object.values(state.players).forEach(p=>{ if(p.holdings[loser]) p.holdings[loser]=0; });
+    if (!state.advancement[stage]) state.advancement[stage]=[];
+    if (!state.advancement[stage].includes(winner)) state.advancement[stage].push(winner);
+    if (stage==='final') state.champion=winner;
+  }
+  state.results.push({home,away,homeScore:hs,awayScore:as_,stage,timestamp:Date.now(),giantKiller:gk1||gk2});
+  await save(); showToast(`⚽ ${home} ${hs}–${as_} ${away}`,'success');
+  renderAdmin(); renderAdvancementManager();
+}
+
+function applyPriceChange(country, pct) {
+  if (state.eliminated[country]) return;
+  state.prices[country]=Math.max(0,Math.round(state.prices[country]*(1+pct)));
+}
+
+// ── ADVANCEMENT MANAGER ───────────────────────────
+function renderAdvancementManager() {
+  const el=document.getElementById('advancement-manager'); if (!el) return;
+  const kStages=STAGES.filter(s=>s.key!=='group');
+  const stageOrder=['r32','r16','qf','sf','final'];
+  let html='';
+  kStages.forEach(st=>{
+    const adv=state.advancement[st.key]||[];
+    const idx=stageOrder.indexOf(st.key);
+    let eligible;
+    if (idx===0) { eligible=COUNTRIES.map(c=>c.name).filter(n=>!state.eliminated[n]||adv.includes(n)); }
+    else {
+      eligible=state.advancement[stageOrder[idx-1]]||[];
+      if (!eligible.length) {
+        html+=`<div style="margin-bottom:14px;"><span style="font-family:var(--font-display);font-size:17px;color:var(--gold);">${st.label}</span><div style="font-size:12px;color:rgba(255,255,255,.25);padding:6px 0;">Mark previous stage first.</div></div>`;
+        return;
+      }
+    }
+    html+=`<div style="margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="font-family:var(--font-display);font-size:17px;color:var(--gold);">${st.label}</span>
+        <span style="font-size:12px;color:rgba(255,255,255,.3);">${adv.length}/${eligible.length} advanced</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">${eligible.map(name=>{
+        const c=COUNTRIES.find(x=>x.name===name), isAdv=adv.includes(name);
+        return `<button onclick="toggleAdvancement('${st.key}','${name}')" style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;border:1px solid ${isAdv?'rgba(0,196,125,.5)':'rgba(255,255,255,.12)'};background:${isAdv?'rgba(0,196,125,.12)':'var(--dark3)'};color:${isAdv?'var(--green)':'rgba(255,255,255,.6)'};cursor:pointer;font-size:12px;font-weight:600;font-family:var(--font-body);">
+          ${c?c.flag:''} ${name}${isAdv?' ✓':''}
+        </button>`;
+      }).join('')}</div>
+    </div>`;
+  });
+  el.innerHTML=html||'<div style="font-size:13px;color:rgba(255,255,255,.3);">No teams to advance yet.</div>';
+}
+
+async function toggleAdvancement(stageKey, teamName) {
+  if (!state.advancement[stageKey]) state.advancement[stageKey]=[];
+  const arr=state.advancement[stageKey], idx=arr.indexOf(teamName);
+  if (idx===-1) arr.push(teamName); else arr.splice(idx,1);
+  if (stageKey==='final') state.champion=arr.length?arr[arr.length-1]:null;
+  await save(); renderAdvancementManager();
+  showToast(`${teamName} ${arr.includes(teamName)?'marked advanced':'removed'}.`);
+}
+
+// ── ADMIN RENDER ──────────────────────────────────
+function renderAdmin() {
+  const b=document.getElementById('admin-market-status');
+  if (b) { b.textContent=state.marketOpen?'Market Open':'Market Closed'; b.className='badge '+(state.marketOpen?'badge-green':'badge-red'); }
+  const log=document.getElementById('results-log');
+  if (!state.results.length) log.innerHTML='<div class="empty-state" style="padding:1.5rem;"><span class="empty-icon">📋</span>No results yet.</div>';
+  else log.innerHTML=[...state.results].reverse().map(r=>{
+    const dt=new Date(r.timestamp).toLocaleString();
+    const sl=STAGES.find(s=>s.key===r.stage)?.label||r.stage;
+    return `<div class="result-item">
+      <div><span style="font-weight:600;">${flagOf(r.home)} ${r.home} ${r.homeScore}–${r.awayScore} ${r.away} ${flagOf(r.away)}</span>${r.giantKiller?' 🔥':''}</div>
+      <div class="result-meta">${sl} · ${dt}</div>
+    </div>`;
+  }).join('');
+  const ap=document.getElementById('admin-portfolios');
+  const playerList=Object.entries(state.players).filter(([,p])=>p.role!=='admin');
+  if (!playerList.length) { ap.innerHTML='<div class="empty-state" style="padding:1.5rem;"><span class="empty-icon">👥</span>No players yet.</div>'; }
+  else ap.innerHTML=playerList.map(([name,p])=>{
+    const entries=Object.entries(p.holdings).filter(([,s])=>s>0);
+    return `<div class="admin-player-card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+        <strong>${name}</strong>
+        <span style="font-size:12px;color:rgba(255,255,255,.4);">$${Math.round(netWorth(p)).toLocaleString()} · ${p.locked?'🔒 Locked':'✏️ Editing'} · ${p.approved?'✅ Approved':'⏳ Pending'}</span>
+      </div>
+      ${entries.length?entries.map(([c,s])=>{const co=COUNTRIES.find(x=>x.name===c);return `<span class="tag">${co?co.flag:''} ${c} ×${s}</span>`;}).join(''):'<span style="font-size:12px;color:rgba(255,255,255,.3);">No holdings</span>'}
+    </div>`;
+  }).join('');
+
+  const al=document.getElementById('approvals-list');
+  if (!al) return;
+  const pending=Object.entries(state.players).filter(([,p])=>p.role!=='admin'&&!p.approved);
+  if (!pending.length) {
+    al.innerHTML='<div class="empty-state" style="padding:1rem;"><span class="empty-icon">✅</span>No pending approvals.</div>';
+  } else {
+    al.innerHTML=pending.map(([name,p])=>{
+      const dt=p.joinedAt?new Date(p.joinedAt).toLocaleTimeString():'';
+      return `<div class="approval-card">
+        <div class="lb-avatar" style="width:36px;height:36px;">${name.slice(0,2).toUpperCase()}</div>
+        <div class="approval-name">${name}</div>
+        <span class="approval-time">${dt}</span>
+        <button class="btn btn-green" style="padding:5px 14px;font-size:12px;" onclick="approvePlayer('${name}')">✓ Approve</button>
+        <button class="btn btn-red" style="padding:5px 12px;font-size:12px;" onclick="denyPlayer('${name}')">✗ Deny</button>
+      </div>`;
+    }).join('');
+  }
+}
+
+// ── PLAYER APPROVAL ────────────────────────────────
+async function approvePlayer(name) {
+  if (!state.players[name]) return;
+  state.players[name].approved = true;
+  if (state.pendingPlayers) delete state.pendingPlayers[name];
+  await save();
+  showToast(`✅ ${name} approved!`, 'success');
+  renderAdmin();
+}
+
+async function denyPlayer(name) {
+  delete state.players[name];
+  if (state.pendingPlayers) delete state.pendingPlayers[name];
+  if (state.transactions) delete state.transactions[name];
+  await save();
+  showToast(`${name} removed from game.`);
+  renderAdmin();
+}
+
+function confirmDeleteRoom() {
+  document.getElementById('delete-room-name').textContent = currentRoomName||currentRoomCode;
+  document.getElementById('delete-room-modal').style.display='flex';
+}
+
+async function doDeleteRoom() {
+  try {
+    const registry = await loadRoomsRegistry();
+    delete registry[currentRoomCode];
+    await saveRoomsRegistry(registry);
+    await db.ref('rooms/' + currentRoomCode).remove();
+  } catch(e) {}
+  closeModal('delete-room-modal');
+  stopPolling();
+  currentRoomCode=null; currentRoomName=''; currentUser=null; state=freshState();
+  document.getElementById('main-app').classList.remove('vis');
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('screen-lobby').classList.add('active');
+  showToast('Room deleted.','');
+  renderLobby();
+}
+
+// ── RESET ─────────────────────────────────────────
+function confirmReset() { document.getElementById('reset-modal').style.display='flex'; }
+async function doReset() {
+  const oldPin = state.roomPin;
+  state=freshState();
+  state.roomPin = oldPin;
+  await db.ref('rooms/' + currentRoomCode).remove();
+  await save();
+  closeModal('reset-modal');
+  showToast('🔄 Game reset! Fresh start for everyone.','success');
+  if (currentUser) {
+    state.players[currentUser]={cash:STARTING_CASH,holdings:{},locked:false,role:'admin',approved:true};
+    if (!state.transactions) state.transactions={};
+    state.transactions[currentUser]=[];
+    await save();
+  }
+  populateTeamSelects(); renderAdvancementManager(); renderAdmin(); updateMarketBadge();
+  const firstTab=document.querySelector('.nav-tab');
+  if (firstTab) switchTab('portfolio',firstTab);
+}
+
+// ── INIT ───────────────────────────────────────────
+(async () => {
+  document.getElementById('screen-loading').classList.remove('active');
+  document.getElementById('screen-lobby').classList.add('active');
+  renderLobby();
+})();
+</script>
+</body>
+</html>
